@@ -109,6 +109,15 @@ async function graphHTML() {
             bottom: 0;
             overflow: hidden;
         }
+
+        #bottomleft {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            background-color: rgba(255, 255, 255, 0.7);
+
+            padding: 1rem;
+        }
     </style>
 
     <script>
@@ -118,6 +127,15 @@ async function graphHTML() {
 <body>
     <div class="container">
         ${svgOut}
+    </div>
+
+    <div id="bottomleft">
+        <button onclick="refresh()">Refresh</button>
+        <script>
+            function refresh() {
+                window.location.reload();
+            }
+        </script>
     </div>
 
     <script>
