@@ -13,7 +13,7 @@ function graphID(pageID) {
     return 'x' + pageID.slice(0, 8);
 }
 
-(async () => {
+async function graphHTML() {
     const response = await notion.databases.query({
         database_id: databaseId,
     });
@@ -137,13 +137,15 @@ function graphID(pageID) {
 </html>
 `;
 
-    // Serve it
-    const server = http.createServer((req, res) => {
-        res.setHeader('Content-Type', 'text/html');
-        res.write(html);
-        res.end();
-    });
-    server.listen(port, host, () => {
-        console.log(`Server is running on http://${host}:${port}`);
-    });
-})();
+    return html;
+}
+
+// Serve it
+const server = http.createServer(async (req, res) => {
+    res.setHeader('Content-Type', 'text/html');
+    res.write(await graphHTML());
+    res.end();
+});
+server.listen(port, host, () => {
+    console.log(`Server is running on http://${host}:${port}`);
+});
