@@ -1,4 +1,6 @@
-import { Client } from "@notionhq/client"
+import cp from 'child_process';
+
+import { Client } from '@notionhq/client';
 
 const notion = new Client({ auth: process.env.NOTION_KEY });
 const databaseId = "80584cee0bb9461e886a90f22924856e";
@@ -20,8 +22,6 @@ function graphID(pageID) {
         if (page.properties['Status'].select?.name === 'Archived') {
             continue;
         }
-
-        console.log(page, page.properties['Status'].select);
 
         const properties = [];
 
@@ -67,5 +67,23 @@ function graphID(pageID) {
     dot += relationships.join('\n') + '\n';
     dot += `}\n`;
 
-    console.log(dot);
+    const svgOut = await new Promise((resolve, reject) => {
+        let p = cp.spawn('dot', ['-Tsvg']);
+        let svgOut = '';
+        p.stdout.on('data', data => {
+            console.log('data', data);
+            svgOut += data;
+        });
+        p.on('close', () => {
+            resolve(svgOut);
+        });
+        p.on('error', err => {
+            reject(err);
+        });
+
+        p.stdin.write(dot);
+        p.stdin.end();
+    });
+
+    console.log(svgOut);
 })();
