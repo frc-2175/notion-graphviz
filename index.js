@@ -13,14 +13,36 @@ function graphID(pageID) {
     return 'x' + pageID.slice(0, 8);
 }
 
+function wrapTitle(title) {
+    const words = title.split(' ');
+
+    const maxLen = 20;
+    let len = 0;
+    let line = [];
+    const lines = [];
+    for (const word of words) {
+        line.push(word);
+        len += word.length;
+        if (len > maxLen) {
+            lines.push(line);
+            len = 0;
+            line = [];
+        }
+    }
+    lines.push(line);
+
+    return lines.map(line => line.join(' ')).join('\\n');
+}
+
 async function graphHTML() {
     const response = await notion.databases.query({
         database_id: databaseId,
     });
 
-    const items = [];
+    const pages = {}; // keyed by id
+    const items = []; // dot for each item
     const subgraphs = {};
-    const relationships = [];
+    const relationships = []; // tuples of [id, id]
 
     for (const page of response.results) {
         if (page.properties['Status'].select?.name === 'Archived') {
@@ -34,14 +56,17 @@ async function graphHTML() {
             continue;
         }
         const title = titleObj.plain_text;
-        properties.push(`label="${title}"`);
+        properties.push(`label="${wrapTitle(title)}"`);
 
-        properties.push(`color=${page.properties['Status'].select.color}`);
+        if (page.properties['Status'].select) {
+            properties.push(`color=${page.properties['Status'].select.color}`);
+        }
 
         const subteams = page.properties['Subteam'].multi_select;
         const subteam = subteams.length === 1 ? subteams[0] : null;
 
         const itemDot = `${graphID(page.id)} [${properties.join(', ')}];`;
+        pages[graphID(page.id)] = page;
 
         if (subteam) {
             if (!subgraphs[subteam.name]) {
@@ -53,7 +78,14 @@ async function graphHTML() {
         }
 
         for (const relation of page.properties['Blocks'].relation) {
-            relationships.push(`${graphID(page.id)} -> ${graphID(relation.id)};`);
+            relationships.push([graphID(page.id), graphID(relation.id)]);
+        }
+    }
+
+    const relationshipsDot = []; // dot syntax for relationships
+    for (const r of relationships) {
+        if (pages[r[0]] && pages[r[1]]) {
+            relationshipsDot.push(`${r[0]} -> ${r[1]};`);
         }
     }
 
@@ -68,7 +100,7 @@ async function graphHTML() {
         dot += items.join('\n') + '\n';
         dot += `}\n`;
     }
-    dot += relationships.join('\n') + '\n';
+    dot += relationshipsDot.join('\n') + '\n';
     dot += `}\n`;
 
     const svgOut = await new Promise((resolve, reject) => {
