@@ -40,7 +40,7 @@ async function graphHTML() {
     });
 
     const pages = {}; // keyed by id
-    const items = []; // dot for each item
+    const dotItems = []; // dot for each item
     const subgraphs = {};
     const relationships = []; // tuples of [id, id]
 
@@ -49,23 +49,31 @@ async function graphHTML() {
             continue;
         }
 
-        const properties = [];
+        const worryOn = page.properties["Don't worry about until"].date;
+        if (worryOn) {
+            const worryOnDate = Date.parse(worryOn.start);
+            if (new Date() < worryOnDate) {
+                continue;
+            }
+        }
+
+        const dotProperties = [];
 
         const titleObj = page.properties['Name'].title[0];
         if (!titleObj) {
             continue;
         }
         const title = titleObj.plain_text;
-        properties.push(`label="${wrapTitle(title)}"`);
+        dotProperties.push(`label="${wrapTitle(title)}"`);
 
         if (page.properties['Status'].select) {
-            properties.push(`color=${page.properties['Status'].select.color}`);
+            dotProperties.push(`color=${page.properties['Status'].select.color}`);
         }
 
         const subteams = page.properties['Subteam'].multi_select;
         const subteam = subteams.length === 1 ? subteams[0] : null;
 
-        const itemDot = `${graphID(page.id)} [${properties.join(', ')}];`;
+        const itemDot = `${graphID(page.id)} [${dotProperties.join(', ')}];`;
         pages[graphID(page.id)] = page;
 
         if (subteam) {
@@ -74,7 +82,7 @@ async function graphHTML() {
             }
             subgraphs[subteam.name].push(itemDot);
         } else {
-            items.push(itemDot);
+            dotItems.push(itemDot);
         }
 
         for (const relation of page.properties['Blocks'].relation) {
@@ -93,7 +101,7 @@ async function graphHTML() {
 
     let dot = `digraph {\n`;
     dot += `rankdir="LR";\n`
-    dot += items.join('\n') + '\n';
+    dot += dotItems.join('\n') + '\n';
     for (const [name, items] of Object.entries(subgraphs)) {
         dot += `subgraph cluster${subgraphIndex++} {\n`;
         dot += `label="${name}";\n`;
