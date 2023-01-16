@@ -70,6 +70,21 @@ async function graphHTML() {
             dotProperties.push(`color=${page.properties['Status'].select.color}`);
         }
 
+        const deadline = page.properties["Deadline"].date;
+        if (deadline) {
+            const deadlineDate = Date.parse(deadline.start);
+            const now = new Date();
+            now.setUTCHours(0);
+            now.setUTCMinutes(0);
+            now.setUTCSeconds(0);
+            now.setUTCMilliseconds(0);
+            if (now <= deadlineDate) {
+                dotProperties.push(`fontcolor=red`);
+                dotProperties.push(`penwidth=2`);
+                dotProperties.push(`shape=hexagon`);
+            }
+        }
+
         const subteams = page.properties['Subteam'].multi_select;
         const subteam = subteams.length === 1 ? subteams[0] : null;
 
